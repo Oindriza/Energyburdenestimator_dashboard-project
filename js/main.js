@@ -411,3 +411,87 @@ document.getElementById("clearBtn").addEventListener("click", () => {
   // Optional: Reset map view to default Philadelphia zoom
   map.setView([39.99, -75.12], 11);
 });
+
+// ======================
+// ADDRESS AUTOCOMPLETE (PHILADELPHIA FILTERED)
+// ======================
+const input = document.getElementById("addressInput");
+const suggestionBox = document.getElementById("autocomplete-list");
+
+let autocompleteTimeout = null;
+let lastQuery = "";
+
+input.addEventListener("input", function () {
+  const userText = input.value.trim();
+
+  if (!userText) {
+    suggestionBox.style.display = "none";
+    return;
+  }
+
+  lastQuery = userText;
+
+  clearTimeout(autocompleteTimeout);
+  autocompleteTimeout = setTimeout(() => {
+    
+    const query = `${userText}, Philadelphia, PA`;
+
+    const url =
+      `https://nominatim.openstreetmap.org/search` +
+      `?format=json` +
+      `&q=${encodeURIComponent(query)}` +
+      `&addressdetails=1` +
+      `&limit=5` +
+      `&countrycodes=us` +
+      `&bounded=1` +
+      `&viewbox=-75.30,40.15,-74.90,39.85`;  // PHILADELPHIA BOUNDING BOX
+
+    fetch(url)
+      .then(res => res.json())
+      .then(data => {
+        // Ignore stale responses
+        if (input.value.trim() !== lastQuery) return;
+
+        suggestionBox.innerHTML = "";
+
+        if (!data.length) {
+          suggestionBox.style.display = "none";
+          return;
+        }
+
+        data.forEach(item => {
+          const div = document.createElement("div");
+          div.classList.add("autocomplete-item");
+
+          // Shorter name
+          div.textContent = item.display_name.replace(", United States", "");
+
+          div.addEventListener("click", () => {
+            input.value = item.display_name.replace(", United States", "");
+            suggestionBox.style.display = "none";
+
+            const lat = parseFloat(item.lat);
+            const lon = parseFloat(item.lon);
+
+            map.setView([lat, lon], 14);
+            handleLocation(lat, lon);
+          });
+
+          suggestionBox.appendChild(div);
+        });
+
+        suggestionBox.style.display = "block";
+      })
+      .catch(err => {
+        console.error("Autocomplete error:", err);
+      });
+
+  }, 400);   // ← SAFE debounce to avoid rate limits
+});
+
+// Hide dropdown on outside click
+document.addEventListener("click", (e) => {
+  if (e.target !== input) {
+    suggestionBox.style.display = "none";
+  }
+});
