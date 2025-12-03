@@ -1,9 +1,10 @@
 // ======================
 // MAP SETUP
 // ======================
+
 const map = L.map("map", {
   zoomSnap: 0,
-  scrollWheelZoom: false
+  scrollWheelZoom: true
 }).setView([39.99, -75.12], 11);
 
 L.tileLayer(
@@ -16,10 +17,45 @@ L.tileLayer(
   }
 ).addTo(map);
 
+
+async function reverseGeocode(lat, lon) {
+  const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`;
+
+  try {
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if (data && data.display_name) {
+      return data.display_name;
+    } else {
+      return "Unknown location";
+    }
+  } catch (err) {
+    console.error("Reverse geocoding failed:", err);
+    return "Address not found";
+  }
+}
+
+
+map.on("click", async function (e) {
+  const lat = e.latlng.lat;
+  const lon = e.latlng.lng;
+
+  // Reverse geocode clicked location
+  const clickedAddress = await reverseGeocode(lat, lon);
+
+  // Show the clicked address in the sidebar
+  document.getElementById("addressInput").value = clickedAddress;
+
+  // Run ALL the existing logic (marker + highlight + tract)
+  handleLocation(lat, lon);
+});
+
 let tractGeojson = null;
 let burdenData = null;
 let searchMarker = null;
 let currentTractGEOID = null;
+let selectedLayer = null;
 
 // ======================
 // REGRESSION COEFFICIENTS (from R model)
@@ -106,7 +142,16 @@ function predictBurden(housingType, incomeBucket) {
 }
 
 
-
+// ======================
+// COLOR SCALE FOR ENERGY BURDEN
+// ======================
+function getColor(burden) {
+  return burden > 10 ? "#A44A3F" :     // dark peach
+         burden > 7  ? "#E5989B" :     // peach
+         burden > 4  ? "#FFDA77" :     // muted yellow
+         burden > 2  ? "#F6C453" :     // light muted yellow
+                        "#74C69D";     // muted green
+}
 
 // ======================
 // LOAD DATA
@@ -118,9 +163,39 @@ async function loadData() {
     dynamicTyping: false
   }).data;
 
-  L.geoJSON(tractGeojson, {
-    style: { color: "#1E90FF", weight: 1, fillOpacity: 0.4 }
-  }).addTo(map);
+// Build lookup table: GEOID → burden %
+const tractBurden = {};
+burdenData.forEach(row => {
+  const geoid = row.GEOID.toString().slice(0, 11);
+  const value = parseFloat(row.EnergyBurdenPercent);
+  if (!isNaN(value)) tractBurden[geoid] = value;
+});
+
+// Add shaded map layer
+L.geoJSON(tractGeojson, {
+  style: feature => {
+    const geoid = feature.properties.GEOID.toString().slice(0, 11);
+    const burden = tractBurden[geoid];
+    const color = burden ? getColor(burden) : "#ccc";
+
+    return {
+      fillColor: color,
+      fillOpacity: 0.75,
+      color: "#ffffff",
+      weight: 1
+    };
+  },
+
+  onEachFeature: (feature, layer) => {
+    const geoid = feature.properties.GEOID.toString().slice(0, 11);
+    const burden = tractBurden[geoid]?.toFixed(1) || "No data";
+
+    layer.bindTooltip(
+      `Tract: ${geoid}<br>Burden: ${burden}%`,
+      { sticky: true }
+    );
+  }
+}).addTo(map);
 
   console.log("Loaded data.");
 }
@@ -154,6 +229,110 @@ function findTract(lat, lon) {
 }
 
 
+
+function highlightTract(feature) {
+  if (selectedLayer) {
+    map.removeLayer(selectedLayer);
+  }
+
+  selectedLayer = L.geoJSON(feature, {
+    style: {
+      color: "yellow",
+      weight: 3,
+      fillOpacity: 0.1
+    }
+  }).addTo(map);
+}
+
+function handleLocation(lat, lon) {
+
+  // Move marker
+  if (searchMarker) map.removeLayer(searchMarker);
+  searchMarker = L.marker([lat, lon]).addTo(map);
+
+  // Find tract
+  const tract = findTract(lat, lon);
+
+  if (!tract) {
+    document.getElementById("resultsText").innerHTML =
+      "Location is outside Philadelphia.";
+    currentTractGEOID = null;
+    return;
+  }
+
+  currentTractGEOID = tract.properties.GEOID.toString();
+
+  // Highlight tract
+  highlightTract(tract);
+
+  // Update results
+  document.getElementById("resultsText").innerHTML = `
+    Location selected.<br>
+    Select housing type and income to calculate burden.
+  `;
+}
+
+
+// ======================
+// CALCULATE BURDEN BUTTON
+// ======================
+document.getElementById("calcBtn").addEventListener("click", () => {
+  if (!currentTractGEOID) {
+    alert("Search for an address first.");
+    return;
+  }
+
+  const housing = document.getElementById("housingSelect").value;
+  const incomeBucket = document.getElementById("incomeSelect").value;
+
+  if (!housing || !incomeBucket) {
+    alert("Select both housing and income.");
+    return;
+  }
+
+  const predicted = predictBurden(housing, incomeBucket);
+
+  document.getElementById("resultsText").innerHTML = `
+    Predicted annual energy burden:<br>
+    <strong>${predicted.toFixed(1)}%</strong>
+  `;
+});
+
+
+// ======================
+// CLEAR SELECTION BUTTON
+// ======================
+document.getElementById("clearBtn").addEventListener("click", () => {
+
+  // Remove marker + highlight
+  if (searchMarker) {
+    map.removeLayer(searchMarker);
+    searchMarker = null;
+  }
+
+  if (selectedLayer) {
+    map.removeLayer(selectedLayer);
+    selectedLayer = null;
+  }
+
+  // Reset inputs
+  document.getElementById("addressInput").value = "";
+  document.getElementById("housingSelect").value = "";
+  document.getElementById("incomeSelect").value = "";
+
+  // Reset state
+  currentTractGEOID = null;
+
+  // Reset results text
+  document.getElementById("resultsText").innerHTML =
+    "Search for an address first.";
+
+  // Optional: move map back to original view
+  map.setView([39.99, -75.12], 11);
+});
+
+
+
 // ======================
 // SEARCH BUTTON
 // ======================
@@ -172,26 +351,9 @@ document.getElementById("searchBtn").addEventListener("click", async () => {
 
   map.setView([loc.lat, loc.lon], 13);
 
-  if (searchMarker) map.removeLayer(searchMarker);
-  searchMarker = L.marker([loc.lat, loc.lon]).addTo(map);
-
-  const tract = findTract(loc.lat, loc.lon);
-  if (!tract) {
-    alert("Could not determine census tract.");
-    return;
-  }
-
-  currentTractGEOID = tract.properties.GEOID.toString();
-
-  document.getElementById("results").innerHTML = `
-    <h3>Results</h3>
-    <p><strong>Tract GEOID:</strong> ${currentTractGEOID}</p>
-  `;
-
-  document.getElementById("verdictText").innerHTML =
-    "Select housing + income to calculate burden.";
+  // Unified handler (marker + tract + highlight + UI updates)
+  handleLocation(loc.lat, loc.lon);
 });
-
 
 // ======================
 // CALCULATE BURDEN (REGRESSION MODEL VERSION)
@@ -215,4 +377,37 @@ document.getElementById("calcBtn").addEventListener("click", () => {
   document.getElementById("verdictText").innerHTML = `
     Predicted energy burden: <strong>${predicted.toFixed(1)}%</strong>
   `;
+});
+
+document.getElementById("clearBtn").addEventListener("click", () => {
+
+  // Remove marker
+  if (searchMarker) {
+    map.removeLayer(searchMarker);
+    searchMarker = null;
+  }
+
+  // Remove highlighted tract
+  if (selectedLayer) {
+    map.removeLayer(selectedLayer);
+    selectedLayer = null;
+  }
+
+  // Reset all dropdowns + input
+  document.getElementById("addressInput").value = "";
+  document.getElementById("housingSelect").value = "";
+  document.getElementById("incomeSelect").value = "";
+
+  // Reset state tracking
+  currentTractGEOID = null;
+
+  // Reset results pane text
+  document.getElementById("resultsText").innerHTML =
+    "Search for an address first.";
+
+  document.getElementById("verdictText").innerHTML =
+    "Search for an address first.";
+
+  // Optional: Reset map view to default Philadelphia zoom
+  map.setView([39.99, -75.12], 11);
 });
