@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Energy Burden Dashboard</title>
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+  <link rel="stylesheet" href="css/styles.css" />
+
+  <script src="https://cdn.jsdelivr.net/npm/@turf/turf/turf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+</head>
+
+<body>
+  <div id="container">
+    <div id="map"></div>
+
+    <div id="sidebar">
+      <h2>Energy Burden Dashboard</h2>
+
+      <!-- Address Search -->
+      <input id="addressInput" placeholder="Enter address" />
+      <button id="searchBtn">Find Tract</button>
+
+      <!-- Housing Type -->
+      <label>Housing Type</label>
+      <select id="housingSelect">
+        <option value="">-- Select --</option>
+        <option>OWNER 1 ATTACHED</option>
+        <option>OWNER 1 DETACHED</option>
+        <option>OWNER 2 UNIT</option>
+        <option>OWNER 3-4 UNIT</option>
+        <option>OWNER 5-9 UNIT</option>
+        <option>OWNER 10-19 UNIT</option>
+        <option>OWNER 20-49 UNIT</option>
+        <option>OWNER 50+ UNIT</option>
+        <option>OWNER MOBILE_TRAILER</option>
+        <option>OWNER BOAT_RV_VAN</option>
+
+        <option>RENTER 1 ATTACHED</option>
+        <option>RENTER 1 DETACHED</option>
+        <option>RENTER 2 UNIT</option>
+        <option>RENTER 3-4 UNIT</option>
+        <option>RENTER 5-9 UNIT</option>
+        <option>RENTER 10-19 UNIT</option>
+        <option>RENTER 20-49 UNIT</option>
+        <option>RENTER 50+ UNIT</option>
+        <option>RENTER MOBILE_TRAILER</option>
+        <option>RENTER BOAT_RV_VAN</option>
+      </select>
+
+      <!-- Income Category -->
+<label>Income Category</label>
+<select id="incomeSelect">
+  <option value="">-- Select --</option>
+  <option value="Under $20k">Under $20k</option>
+  <option value="$20k–$30k">$20k–$30k</option>
+  <option value="$30k–$40k">$30k–$40k</option>
+  <option value="$40k–$50k">$40k–$50k</option>
+  <option value="$50k–$60k">$50k–$60k</option>
+  <option value="$60k–$75k">$60k–$75k</option>
+  <option value="$75k–$100k">$75k–$100k</option>
+  <option value="$150k+">$150k+</option>
+</select>
+
+      <button id="calcBtn">Calculate Burden</button>
+
+      <div id="results"></div>
+
+      <div id="verdict" class="panel">
+        <h3>Verdict</h3>
+        <p id="verdictText">Search for an address first.</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
