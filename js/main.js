@@ -1,6 +1,5 @@
-// ======================
 // MAP SETUP
-// ======================
+
 
 const map = L.map("map", {
   zoomSnap: 0,
@@ -57,9 +56,7 @@ let searchMarker = null;
 let currentTractGEOID = null;
 let selectedLayer = null;
 
-// ======================
 // REGRESSION COEFFICIENTS (from R model)
-// ======================
 const COEF = {
   intercept: 11.9792,
 
@@ -99,10 +96,8 @@ const COEF = {
 };
 
 
-
-// ======================
 // NORMALIZATION HELPERS
-// ======================
+
 function normalize(str) {
   if (!str) return "";
   return str.toString().trim().toUpperCase().replace(/\s+/g, " ");
@@ -124,9 +119,8 @@ function normalizeGEOID(g) {
 }
 
 
-// ======================
 // REGRESSION PREDICTOR
-// ======================
+
 function predictBurden(housingType, incomeBucket) {
   let y = COEF.intercept;
 
@@ -141,10 +135,8 @@ function predictBurden(housingType, incomeBucket) {
   return Math.max(0, y);  // no negative values
 }
 
-
-// ======================
 // COLOR SCALE FOR ENERGY BURDEN
-// ======================
+
 function getColor(burden) {
   return burden > 10 ? "#A44A3F" :     // dark peach
          burden > 7  ? "#E5989B" :     // peach
@@ -153,9 +145,9 @@ function getColor(burden) {
                         "#74C69D";     // muted green
 }
 
-// ======================
+
 // LOAD DATA
-// ======================
+
 async function loadData() {
   tractGeojson = await fetch("data/tracts.geojson").then(r => r.json());
   burdenData = Papa.parse(await fetch("data/burden_lookup_clean.csv").then(r => r.text()), {
@@ -202,9 +194,9 @@ L.geoJSON(tractGeojson, {
 loadData();
 
 
-// ======================
+
 // GEOCODING
-// ======================
+
 async function geocode(address) {
   const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`;
   const res = await fetch(url);
@@ -216,9 +208,8 @@ async function geocode(address) {
 }
 
 
-// ======================
 // FIND TRACT USING TURF
-// ======================
+
 function findTract(lat, lon) {
   const pt = turf.point([lon, lat]);
 
@@ -273,9 +264,8 @@ function handleLocation(lat, lon) {
 }
 
 
-// ======================
 // CALCULATE BURDEN BUTTON
-// ======================
+
 document.getElementById("calcBtn").addEventListener("click", () => {
   if (!currentTractGEOID) {
     alert("Search for an address first.");
@@ -299,9 +289,9 @@ document.getElementById("calcBtn").addEventListener("click", () => {
 });
 
 
-// ======================
+
 // CLEAR SELECTION BUTTON
-// ======================
+
 document.getElementById("clearBtn").addEventListener("click", () => {
 
   // Remove marker + highlight
@@ -332,10 +322,8 @@ document.getElementById("clearBtn").addEventListener("click", () => {
 });
 
 
-
-// ======================
 // SEARCH BUTTON
-// ======================
+
 document.getElementById("searchBtn").addEventListener("click", async () => {
   const address = document.getElementById("addressInput").value;
   if (!address) {
@@ -355,9 +343,9 @@ document.getElementById("searchBtn").addEventListener("click", async () => {
   handleLocation(loc.lat, loc.lon);
 });
 
-// ======================
+
 // CALCULATE BURDEN (REGRESSION MODEL VERSION)
-// ======================
+
 document.getElementById("calcBtn").addEventListener("click", () => {
   if (!currentTractGEOID) {
     alert("Search for an address first.");
@@ -412,9 +400,9 @@ document.getElementById("clearBtn").addEventListener("click", () => {
   map.setView([39.99, -75.12], 11);
 });
 
-// ======================
+
 // ADDRESS AUTOCOMPLETE (PHILADELPHIA FILTERED)
-// ======================
+
 const input = document.getElementById("addressInput");
 const suggestionBox = document.getElementById("autocomplete-list");
 
