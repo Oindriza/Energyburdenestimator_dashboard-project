@@ -1,6 +1,4 @@
-/* ===================================================================
-   FULLSCREEN HERO HEADER
-   ===================================================================*/
+/* FULLSCREEN HERO HEADER*/
 
 :root {
   --hero-max-w: 1100px;
@@ -54,9 +52,7 @@
   color: #eee;
 }
 
-/* ------------------------------
-   GLOBAL
---------------------------------*/
+/* GLOBAL*/
 
 body {
   margin: 0;
@@ -75,9 +71,7 @@ html, body {
   margin-top: 0vh;
 }
 
-/* ------------------------------
-   SIDEBAR TITLE
---------------------------------*/
+/* SIDEBAR TITLE*/
 #sidebar h2 {
   font-size: 22px;         
   font-weight: 700;
@@ -87,9 +81,7 @@ html, body {
   width: 75%;           
 }
 
-/* ------------------------------
-   FULLSCREEN MAP
---------------------------------*/
+/* FULLSCREEN MAP */
 #map {
   position: absolute;
   top: 0;
@@ -99,9 +91,7 @@ html, body {
   z-index: 1;
 }
 
-/* ------------------------------
-   SIDEBAR (NO SCROLL, FIXED)
---------------------------------*/
+/* SIDEBAR (NO SCROLL, FIXED)*/
 #sidebar {
   position: absolute;        
   right: 0;
@@ -127,7 +117,7 @@ html, body {
   gap: 2px;
 }
 
-/* Title (duplicate kept for your formatting) */
+/* Title */
 #sidebar h2 {
   font-size: 20px;
   font-weight: 700;
@@ -240,9 +230,7 @@ html, body {
   z-index: 1300;
 }
 
-/* ------------------------------
-   MAP LEGEND
---------------------------------*/
+/*  MAP LEGEND */
 .map-legend {
   position: absolute;
   bottom: 20px;
